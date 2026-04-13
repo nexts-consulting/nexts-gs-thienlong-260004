@@ -1,7 +1,7 @@
 import { supabaseFmsService } from "@/services/supabase";
 
 const TABLE_NAME = "fms_rp_entry_gsolution_nx_gs_mar_260002_rp_sale";
-const REDEEM_TABLE_NAME = "fms_rp_entry_gsolution_mar_260002";
+const REDEEM_TABLE_NAME = "fms_rp_entry_gsolution_thienlong_2604";
 
 /**
  * Shape of the `data` jsonb column

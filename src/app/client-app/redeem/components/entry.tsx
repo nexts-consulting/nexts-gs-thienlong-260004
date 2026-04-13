@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { useGlobalContext } from "@/contexts/global.context";
 import { CurrencyInput } from "@/components/DynamicForm/fields/CurrencyInput";
@@ -46,10 +46,38 @@ interface CurrentAttendance {
   updated_at: string;
 }
 
+const DEV_ATTENDANCE: CurrentAttendance = {
+  id: 99999,
+  project_code: "DEV_PROJECT",
+  username: "dev_user",
+  workshift_id: 1,
+  workshift_name: "Ca dev test",
+  shift_start_time: null,
+  shift_end_time: null,
+  location_id: 1,
+  location_code: "DEV_LOC",
+  location_name: "Dev Location",
+  checkin_time: new Date().toISOString(),
+  checkout_time: null,
+  status: "CHECKED_IN",
+  timing_status: "ON_TIME",
+  checkin_photo_url: null,
+  checkout_photo_url: null,
+  checkin_lat: null,
+  checkin_lng: null,
+  checkout_lat: null,
+  checkout_lng: null,
+  metadata: {},
+  created_at: new Date().toISOString(),
+  updated_at: new Date().toISOString(),
+};
+
 export const Entry = () => {
   const globalStore = useGlobalContext();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const notification = useNotification();
+  const isDevMode = searchParams.get("mode") === "dev";
 
   const {
     watch,
@@ -123,7 +151,7 @@ export const Entry = () => {
   const formValues = watch();
   const totalInvoice = formValues?.totalInvoice || 0;
 
-  const BUCKET_PATH = "thienlong-colorkit-2026/redeem";
+  const BUCKET_PATH = "thienlong-holiday-304-2026/redeem";
   const MAX_GIFTS_PER_INVOICE = 100; // Maximum number of gifts that can be received based on invoice
 
   // Firebase cloud config for image uploads
@@ -154,25 +182,7 @@ export const Entry = () => {
   }, [currentAttendance?.location_name, phone]);
 
   const giftOptions = [
-    // { id: "scheme_1", name: "Hóa đơn từ 99.000", gift: "01 Túi lì xì may mắn", requiredPoints: 0 },
-    // { id: "scheme_68_1", name: "Hóa đơn từ 68.000", gift: "Túi lộc", requiredPoints: 0 },
-    // { id: "scheme_68_2", name: "Hóa đơn từ 68.000", gift: "Bao lì xì", requiredPoints: 0 },
-    // { id: "scheme_68_3", name: "Hóa đơn từ 68.000", gift: "Quạt cầm tay", requiredPoints: 0 },
-    // { id: "scheme_68_4", name: "Hóa đơn từ 68.000", gift: "Lót ly", requiredPoints: 0 },
-    // { id: "scheme_68_5", name: "Hóa đơn từ 68.000", gift: "Kẹp sách Comi", requiredPoints: 0 },
-    // { id: "scheme_168_1", name: "Hóa đơn từ 68.000", gift: "Charm ngựa", requiredPoints: 0 },
-    // { id: "scheme_168_2", name: "Hóa đơn từ 68.000", gift: "Bút Thiên Long", requiredPoints: 0 },
-    // { id: "scheme_168_3", name: "Hóa đơn từ 68.000", gift: "Truyện Akooland", requiredPoints: 0 },
-    // { id: "scheme_168_4", name: "Hóa đơn từ 68.000", gift: "Stickers Akooland", requiredPoints: 0 },
-    // //
-    // { id: "scheme_cw1", name: "Quà game khai xuân", gift: "Quà Khai Xuân 1", requiredPoints: 0 },
-    // { id: "scheme_cw2", name: "Quà game khai xuân", gift: "Quà Khai Xuân 2", requiredPoints: 0 },
-    // { id: "scheme_cw3", name: "Quà game khai xuân", gift: "Quà Khai Xuân 3", requiredPoints: 0 },
-    // { id: "scheme_cw4", name: "Quà game khai xuân", gift: "Quà Khai Xuân 4", requiredPoints: 0 },
-    // { id: "scheme_cw5", name: "Quà game khai xuân", gift: "Quà Khai Xuân 5", requiredPoints: 0 },
-    // { id: "scheme_cw6", name: "Quà game khai xuân", gift: "Quà Khai Xuân 6", requiredPoints: 0 },
-    {id: "woman_day_scheme", name: "Hóa đơn Thiên Long từ 83.000", gift: "Khăn Lụa", requiredPoints: 0}
-
+    {id: "holiday_304_gift", name: "Hóa đơn Thiên Long từ 75.000", gift: "Khăn quàng Cờ Việt Nam & Trải nghiệm tô vẽ nón lá", requiredPoints: 0},
   ];
 
 
@@ -358,6 +368,13 @@ export const Entry = () => {
    * Listen for messages from parent app via postMessage API
    */
   useEffect(() => {
+    if (isDevMode) {
+      setCurrentAttendance(DEV_ATTENDANCE);
+      setIsReady(true);
+      console.log("🛠️ DEV MODE: Using dummy attendance data");
+      return;
+    }
+
     const handleMessage = (event: MessageEvent) => {
       // Validate origin for security
       const allowedOrigins = [
@@ -410,7 +427,7 @@ export const Entry = () => {
     return () => {
       window.removeEventListener("message", handleMessage);
     };
-  }, []);
+  }, [isDevMode]);
 
   const onSubmit = async (formData: any) => {
     // Validate parent app data
@@ -501,6 +518,7 @@ export const Entry = () => {
         customerPhone: phone,
         customerName: fullName,
         totalInvoice: totalInvoice,
+        promotionScheme: "holiday_304_scheme",
         gifts: allGifts,
         giftReceiveImageUrl: giftReceiveImageUrl || "",
         invoiceImageUrls: invoiceImageUrls,
@@ -509,6 +527,8 @@ export const Entry = () => {
         workshiftId: currentAttendance.workshift_id?.toString(),
         workshiftName: currentAttendance.workshift_name,
         createdBy: currentAttendance.username,
+        subCode: "thienlong_75k",
+        scheme: "holiday_304_scheme",
       });
 
       if (response.success) {

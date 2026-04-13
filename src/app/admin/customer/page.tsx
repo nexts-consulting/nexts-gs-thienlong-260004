@@ -35,23 +35,7 @@ const { RangePicker } = DatePicker;
 const { Title, Text } = Typography;
 
 const giftConfig = [
-  // { id: "scheme_1", name: "01 Túi lì xì may mắn" },
-  // { id: "scheme_68_1", name: "Túi lộc" },
-  // { id: "scheme_68_2", name: "Bao lì xì" },
-  // { id: "scheme_68_3", name: "Quạt cầm tay" },
-  // { id: "scheme_68_4", name: "Lót ly" },
-  // { id: "scheme_68_5", name: "Kẹp sách Comi" },
-  // { id: "scheme_168_1", name: "Charm ngựa" },
-  // { id: "scheme_168_2", name: "Bút Thiên Long" },
-  // { id: "scheme_168_3", name: "Truyện Akooland" },
-  // { id: "scheme_168_4", name: "Stickers Akooland" },
-  // { id: "scheme_cw1", name: "Quà Khai Xuân 1"},
-  // { id: "scheme_cw2", name: "Quà Khai Xuân 2"},
-  // { id: "scheme_cw3", name: "Quà Khai Xuân 3"},
-  // { id: "scheme_cw4", name: "Quà Khai Xuân 4"},
-  // { id: "scheme_cw5", name: "Quà Khai Xuân 5"},
-  // { id: "scheme_cw6", name: "Quà Khai Xuân 6"},
-  {id: "woman_day_scheme", name: "Khăn Lụa"}
+  {id: "holiday_304_gift", name: "Khăn quàng Cờ Việt Nam & Trải nghiệm tô vẽ nón lá"},
 ];
 
 export default function AdminCustomerPage() {

@@ -2,7 +2,7 @@ import { supabaseFmsService } from "@/services/supabase";
 
 /**
  * Interface for the redeem report entry data
- * Maps to: fms_rp_entry_gsolution_mar_260002 table
+ * Maps to: fms_rp_entry_gsolution_thienlong_2604 table
  */
 export interface RedeemReportEntry {
   id?: number;
@@ -12,13 +12,12 @@ export interface RedeemReportEntry {
   phone_number: string;
   customer_name: string;
   bill_number?: string | null;
+  sub_code?: string | null;
+  scheme?: string | null;
   sale_data: {
     totalInvoice: number;
     invoiceImageUrls: string[];
     promotionScheme: string;
-    doublemintQuantity: number;
-    doublemintOtherQuantity?: number;
-    coolairQuantity?: number;
   };
   gift_data: {
     gifts: Record<string, number>; // giftId -> quantity
@@ -38,9 +37,6 @@ export interface CreateRedeemReportParams {
   customerPhone: string;
   customerName: string;
   totalInvoice: number;
-  doublemintQuantity: number;
-  doublemintOtherQuantity?: number;
-  coolairQuantity?: number;
   promotionScheme: string;
   gifts: Record<string, number>;
   giftReceiveImageUrl: string;
@@ -52,6 +48,8 @@ export interface CreateRedeemReportParams {
   createdBy: string;
   billNumber?: string;
   otherData?: Record<string, any>;
+  subCode?: string;
+  scheme?: string;
 }
 
 /**
@@ -83,7 +81,7 @@ export interface ListRedeemReportResponse {
   total: number;
 }
 
-const TABLE_NAME = "fms_rp_entry_gsolution_mar_260002";
+const TABLE_NAME = "fms_rp_entry_gsolution_thienlong_2604";
 
 export interface CheckBillNumberExistsParams {
   billNumber: string;
@@ -101,9 +99,6 @@ export const createRedeemReport = async (
       customerPhone,
       customerName,
       totalInvoice,
-      doublemintQuantity,
-      doublemintOtherQuantity,
-      coolairQuantity,
       gifts,
       giftReceiveImageUrl,
       promotionScheme,
@@ -115,6 +110,8 @@ export const createRedeemReport = async (
       createdBy,
       billNumber,
       otherData,
+      subCode,
+      scheme,
     } = params;
 
     // Prepare insert data
@@ -126,11 +123,10 @@ export const createRedeemReport = async (
       phone_number: customerPhone,
       customer_name: customerName,
       bill_number: billNumber || null,
+      sub_code: subCode || null,
+      scheme: scheme || null,
       sale_data: {
         totalInvoice,
-        doublemintQuantity,
-        doublemintOtherQuantity: Math.max(0, Number(doublemintOtherQuantity) || 0),
-        coolairQuantity: Math.max(0, Number(coolairQuantity) || 0),
         invoiceImageUrls,
         promotionScheme,
       },
@@ -298,9 +294,6 @@ export interface UpdateReportParams {
   verificationNote?: string;
   verificationStatus?: "correct" | "incorrect";
   gifts?: Record<string, number>;
-  doublemintQuantity?: number;
-  doublemintOtherQuantity?: number;
-  coolairQuantity?: number;
   totalInvoice?: number;
 }
 
@@ -314,9 +307,6 @@ export const updateRedeemReport = async (
       verificationNote,
       verificationStatus,
       gifts,
-      doublemintQuantity,
-      doublemintOtherQuantity,
-      coolairQuantity,
       totalInvoice,
     } = params;
 
@@ -386,36 +376,16 @@ export const updateRedeemReport = async (
       }
     }
 
-    const shouldUpdateSaleData =
-      doublemintQuantity !== undefined ||
-      doublemintOtherQuantity !== undefined ||
-      coolairQuantity !== undefined ||
-      totalInvoice !== undefined;
-    if (shouldUpdateSaleData) {
+    if (totalInvoice !== undefined) {
       const currentSaleData = (currentRecord?.sale_data || {}) as {
         totalInvoice?: number;
         invoiceImageUrls?: string[];
         promotionScheme?: string;
-        doublemintQuantity?: number;
-        doublemintOtherQuantity?: number;
-        coolairQuantity?: number;
       };
-      const nextSaleData = {
+      updatePayload.sale_data = {
         ...currentSaleData,
-        ...(doublemintQuantity !== undefined
-          ? { doublemintQuantity: Math.max(0, Number(doublemintQuantity) || 0) }
-          : {}),
-        ...(doublemintOtherQuantity !== undefined
-          ? { doublemintOtherQuantity: Math.max(0, Number(doublemintOtherQuantity) || 0) }
-          : {}),
-        ...(coolairQuantity !== undefined
-          ? { coolairQuantity: Math.max(0, Number(coolairQuantity) || 0) }
-          : {}),
-        ...(totalInvoice !== undefined
-          ? { totalInvoice: Math.max(0, Number(totalInvoice) || 0) }
-          : {}),
+        totalInvoice: Math.max(0, Number(totalInvoice) || 0),
       };
-      updatePayload.sale_data = nextSaleData;
     }
 
     const { error } = await supabaseFmsService.client

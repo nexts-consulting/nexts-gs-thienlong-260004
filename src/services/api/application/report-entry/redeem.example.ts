@@ -20,29 +20,22 @@ export async function exampleCreateReport() {
   const params: CreateRedeemReportParams = {
     customerPhone: "0901234567",
     customerName: "Nguyễn Văn A",
-    totalInvoice: 500000,
+    totalInvoice: 75000,
+    promotionScheme: "holiday_304_scheme",
     gifts: {
-      scheme_1: 1, // Dây đeo thẻ + Bộ truyện Akooland (x1)
-      scheme_3: 1, // Máy hút bụi mini + Bộ truyện Akooland (x1)
-      bonus_christmas_card: 1, // Thiệp giáng sinh (x1)
-      event_checkin_bag: 1, // Quà tặng check in (x1)
+      holiday_304_gift: 1, // Khăn quàng Cờ Việt Nam & Trải nghiệm tô vẽ nón lá
     },
     giftReceiveImageUrl: "https://storage.googleapis.com/bucket/images/gift_receive.jpg",
     invoiceImageUrls: [
       "https://storage.googleapis.com/bucket/images/invoice_1.jpg",
-      "https://storage.googleapis.com/bucket/images/invoice_2.jpg",
     ],
     locationCode: "LOC001",
     locationName: "AEON Mall Hà Đông",
     workshiftId: "1",
     workshiftName: "Ca sáng",
     createdBy: "user123",
-    billNumber: "HD001", // Optional
-    otherData: {
-      // Optional additional data
-      notes: "Customer is VIP",
-      referralCode: "REF123",
-    },
+    subCode: "thienlong_75k",
+    scheme: "holiday_304_scheme",
   };
 
   try {
@@ -245,16 +238,19 @@ export async function exampleCreateReportEventGiftsOnly() {
     customerPhone: "0901234567",
     customerName: "Nguyễn Văn B",
     totalInvoice: 0, // No purchase
+    promotionScheme: "holiday_304_scheme",
     gifts: {
-      event_checkin_bag: 1, // Only event gift
+      holiday_304_gift: 1,
     },
     giftReceiveImageUrl: "https://storage.googleapis.com/bucket/images/gift_receive_2.jpg",
-    invoiceImageUrls: [], // No invoice images needed for event gifts
+    invoiceImageUrls: [], // No invoice images needed
     locationCode: "LOC002",
     locationName: "AEON Mall Long Biên",
     workshiftId: "2",
     workshiftName: "Ca chiều",
     createdBy: "user456",
+    subCode: "thienlong_75k",
+    scheme: "holiday_304_scheme",
   };
 
   try {

@@ -2,7 +2,7 @@
 
 import { format } from "date-fns";
 import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useGlobalContext } from "@/contexts/global.context";
 import { TextInput } from "@/kits/components/text-input";
 import { Button } from "@/kits/components/button";
@@ -42,28 +42,40 @@ interface CurrentAttendance {
 }
 
 const giftConfig = [
-  // { id: "scheme_1", name: "01 Túi lì xì may mắn" },
-  // { id: "scheme_68_1", name: "Túi lộc" },
-  // { id: "scheme_68_2", name: "Bao lì xì" },
-  // { id: "scheme_68_3", name: "Quạt cầm tay" },
-  // { id: "scheme_68_4", name: "Lót ly" },
-  // { id: "scheme_68_5", name: "Kẹp sách Comi" },
-  // { id: "scheme_168_1", name: "Charm ngựa" },
-  // { id: "scheme_168_2", name: "Bút Thiên Long" },
-  // { id: "scheme_168_3", name: "Truyện Akooland" },
-  // { id: "scheme_168_4", name: "Stickers Akooland" },
-  // { id: "scheme_cw1", name: "Quà Khai Xuân 1"},
-  // { id: "scheme_cw2", name: "Quà Khai Xuân 2"},
-  // { id: "scheme_cw3", name: "Quà Khai Xuân 3"},
-  // { id: "scheme_cw4", name: "Quà Khai Xuân 4"},
-  // { id: "scheme_cw5", name: "Quà Khai Xuân 5"},
-  // { id: "scheme_cw6", name: "Quà Khai Xuân 6"},
-  {id: "woman_day_scheme", name: "Khăn Lụa"}
+  {id: "holiday_304_gift", name: "Khăn quàng Cờ Việt Nam & Trải nghiệm tô vẽ nón lá"},
 ];
+
+const DEV_ATTENDANCE: CurrentAttendance = {
+  id: 99999,
+  project_code: "DEV_PROJECT",
+  username: "dev_user",
+  workshift_id: 1,
+  workshift_name: "Ca dev test",
+  shift_start_time: null,
+  shift_end_time: null,
+  location_id: 1,
+  location_code: "DEV_LOC",
+  location_name: "Dev Location",
+  checkin_time: new Date().toISOString(),
+  checkout_time: null,
+  status: "CHECKED_IN",
+  timing_status: "ON_TIME",
+  checkin_photo_url: null,
+  checkout_photo_url: null,
+  checkin_lat: null,
+  checkin_lng: null,
+  checkout_lat: null,
+  checkout_lng: null,
+  metadata: {},
+  created_at: new Date().toISOString(),
+  updated_at: new Date().toISOString(),
+};
 
 export const Entry = () => {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const globalStore = useGlobalContext();
+  const isDevMode = searchParams.get("mode") === "dev";
 
   // Parent app data
   const [currentAttendance, setCurrentAttendance] = useState<CurrentAttendance | null>(null);
@@ -85,6 +97,13 @@ export const Entry = () => {
    * Listen for messages from parent app
    */
   useEffect(() => {
+    if (isDevMode) {
+      setCurrentAttendance(DEV_ATTENDANCE);
+      setIsReady(true);
+      console.log("🛠️ DEV MODE: Using dummy attendance data");
+      return;
+    }
+
     const handleMessage = (event: MessageEvent) => {
       // Validate origin for security
       const allowedOrigins = [
@@ -130,7 +149,7 @@ export const Entry = () => {
     return () => {
       window.removeEventListener("message", handleMessage);
     };
-  }, []);
+  }, [isDevMode]);
 
   /**
    * Fetch customer reports from Supabase
@@ -441,6 +460,7 @@ export const Entry = () => {
                 variant="tertiary"
                 onClick={() => setSelectedCustomer(null)}
                 className="w-full"
+                centered
               >
                 Đóng
               </Button>

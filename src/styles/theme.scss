@@ -1,0 +1,23 @@
+.ant-pagination .ant-pagination-item-active {
+  border-color: var(--color-primary-base) !important;
+}
+
+.ant-pagination .ant-pagination-item-active a {
+  color: var(--color-primary-base) !important;
+}
+
+.ant-pagination .ant-pagination-item {
+  background-color: transparent;
+}
+
+.ant-modal .ant-modal-content {
+  border-radius: 0 !important;
+}
+
+.ant-btn {
+  border-radius: 0 !important;
+}
+
+.ant-notification-notice {
+  border-radius: 0 !important;
+}

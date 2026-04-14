@@ -421,6 +421,7 @@ export interface ListCustomerReportsParams {
   locationKeyword?: string; // Partial match by location name/code
   dateFrom?: string; // Start date for range (yyyy-MM-dd)
   dateTo?: string; // End date for range (yyyy-MM-dd)
+  schemeIn?: string[]; // Filter by scheme IDs (for project-level filtering)
   page?: number;
   size?: number;
 }
@@ -454,24 +455,30 @@ export const listCustomerReports = async (
   params: ListCustomerReportsParams
 ): Promise<ListRedeemReportResponse> => {
   try {
-    const { 
-      date, 
-      createdBy, 
+    const {
+      date,
+      createdBy,
       createdByKeyword,
-      workshiftId, 
-      phoneNumber, 
+      workshiftId,
+      phoneNumber,
       customerName,
       locationKeyword,
       dateFrom,
       dateTo,
-      page = 0, 
-      size = 10 
+      schemeIn,
+      page = 0,
+      size = 10
     } = params;
 
     let query = supabaseFmsService.client
       .from(TABLE_NAME)
       .select("*", { count: "exact" })
       .order("created_at", { ascending: false });
+
+    // Filter by project schemes
+    if (schemeIn && schemeIn.length > 0) {
+      query = query.in("scheme", schemeIn);
+    }
 
     // Filter by single date if provided
     if (date) {
@@ -553,22 +560,28 @@ export const listAllCustomerReports = async (
   params: Omit<ListCustomerReportsParams, 'page' | 'size'>
 ): Promise<RedeemReportEntry[]> => {
   try {
-    const { 
-      date, 
-      createdBy, 
+    const {
+      date,
+      createdBy,
       createdByKeyword,
-      workshiftId, 
-      phoneNumber, 
+      workshiftId,
+      phoneNumber,
       customerName,
       locationKeyword,
       dateFrom,
       dateTo,
+      schemeIn,
     } = params;
 
     let query = supabaseFmsService.client
       .from(TABLE_NAME)
       .select("*")
       .order("created_at", { ascending: false });
+
+    // Filter by project schemes
+    if (schemeIn && schemeIn.length > 0) {
+      query = query.in("scheme", schemeIn);
+    }
 
     // Apply same filters as listCustomerReports
     if (date) {

@@ -9,6 +9,8 @@ import { Button } from "@/kits/components/button";
 import { Icons } from "@/kits/components/icons";
 import { LoadingOverlay } from "@/kits/components/loading-overlay";
 import { listCustomerReports, type RedeemReportEntry } from "@/services/api/application/report-entry/redeem";
+import type { ProjectConfig } from "@/config/projects";
+import { getAllGiftConfigs } from "@/config/projects";
 
 const INITIAL_PAGE_SIZE = 10;
 
@@ -41,10 +43,6 @@ interface CurrentAttendance {
   updated_at: string;
 }
 
-const giftConfig = [
-  {id: "holiday_304_gift", name: "Khăn quàng Cờ Việt Nam & Trải nghiệm tô vẽ nón lá"},
-];
-
 const DEV_ATTENDANCE: CurrentAttendance = {
   id: 99999,
   project_code: "DEV_PROJECT",
@@ -71,11 +69,22 @@ const DEV_ATTENDANCE: CurrentAttendance = {
   updated_at: new Date().toISOString(),
 };
 
-export const Entry = () => {
+interface EntryProps {
+  projectConfig?: ProjectConfig;
+}
+
+export const Entry = ({ projectConfig }: EntryProps) => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const globalStore = useGlobalContext();
   const isDevMode = searchParams.get("mode") === "dev";
+
+  // Derive gift config from project config
+  const giftConfig = projectConfig
+    ? getAllGiftConfigs(projectConfig)
+    : [{ id: "holiday_304_gift", name: "Khăn quàng Cờ Việt Nam & Trải nghiệm tô vẽ nón lá" }];
+
+  const displayName = projectConfig?.displayName ?? "Thiên Long - Lễ 30/4";
 
   // Parent app data
   const [currentAttendance, setCurrentAttendance] = useState<CurrentAttendance | null>(null);
@@ -105,7 +114,6 @@ export const Entry = () => {
     }
 
     const handleMessage = (event: MessageEvent) => {
-      // Validate origin for security
       const allowedOrigins = [
         process.env.NEXT_PUBLIC_PARENT_APP_URL || "",
         "http://localhost:3000",
@@ -119,7 +127,6 @@ export const Entry = () => {
         return;
       }
 
-      // Handle message
       const message = event.data;
 
       switch (message.type) {
@@ -140,7 +147,6 @@ export const Entry = () => {
 
     window.addEventListener("message", handleMessage);
 
-    // Notify parent that form is ready
     const parentOrigin = process.env.NEXT_PUBLIC_PARENT_APP_URL || "*";
     window.parent.postMessage({ type: "FORM_READY" }, parentOrigin);
 
@@ -159,10 +165,12 @@ export const Entry = () => {
 
     setIsLoading(true);
     try {
+      const schemeIds = projectConfig?.schemes.map((s) => s.id);
       const response = await listCustomerReports({
         date: dateString,
         createdBy: currentAttendance.username,
         workshiftId: currentAttendance.workshift_id?.toString(),
+        schemeIn: schemeIds && schemeIds.length > 0 ? schemeIds : undefined,
         page: page,
         size: INITIAL_PAGE_SIZE,
       });
@@ -216,6 +224,7 @@ export const Entry = () => {
     <>
       <div className="bg-white border-b border-gray-200 p-4 sticky top-0 z-10">
         <div className="flex items-center gap-2 mb-2">
+          <p className="text-sm font-semibold text-gray-800">{displayName}</p>
         </div>
         <p className="text-xs text-gray-60">
           Điểm làm việc: {currentAttendance.location_name} ({currentAttendance.location_code})
@@ -263,6 +272,11 @@ export const Entry = () => {
                   {customer.customer_name}
                 </h3>
                 <p className="text-xs text-gray-600 mb-2">{customer.phone_number}</p>
+                {customer.scheme && (
+                  <p className="text-xs text-primary-50 font-medium mb-1">
+                    {projectConfig?.schemes.find((s) => s.id === customer.scheme)?.name ?? customer.scheme}
+                  </p>
+                )}
                 <p className="text-xs text-gray-600 mb-2">
                   Tổng hóa đơn:{" "}
                   {customer.sale_data?.totalInvoice != null
@@ -317,7 +331,8 @@ export const Entry = () => {
                   <h4 className="text-sm font-semibold text-gray-900 mb-3">
                     Thông tin khách hàng
                   </h4>
-                  <div className="space-y-2  p-3"> <div className="flex justify-between">
+                  <div className="space-y-2 p-3">
+                    <div className="flex justify-between">
                       <span className="text-sm text-gray-600">Tên khách hàng:</span>
                       <span className="text-sm font-medium text-gray-900">
                         {selectedCustomer.customer_name}
@@ -329,6 +344,14 @@ export const Entry = () => {
                         {selectedCustomer.phone_number}
                       </span>
                     </div>
+                    {selectedCustomer.scheme && (
+                      <div className="flex justify-between">
+                        <span className="text-sm text-gray-600">Chương trình:</span>
+                        <span className="text-sm font-medium text-primary-50">
+                          {projectConfig?.schemes.find((s) => s.id === selectedCustomer.scheme)?.name ?? selectedCustomer.scheme}
+                        </span>
+                      </div>
+                    )}
                     <div className="flex justify-between">
                       <span className="text-sm text-gray-600">Tổng hóa đơn:</span>
                       <span className="text-sm font-medium text-gray-900">
@@ -368,10 +391,9 @@ export const Entry = () => {
                       Thông tin quà tặng
                     </h4>
                     <div className="space-y-4">
-                      {/* Quà tặng đã nhận */}
                       <div>
                         <table className="min-w-full bordery divide-gray-200">
-                          <thead className="">
+                          <thead>
                             <tr>
                               <th className="px-4 py-2 text-left text-xs font-semibold text-gray-700">
                                 Tên quà tặng

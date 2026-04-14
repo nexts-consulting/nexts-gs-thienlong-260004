@@ -1,10 +1,5 @@
-import { Suspense } from "react";
-import { Entry } from "./components/entry";
+import { redirect } from "next/navigation";
 
-export default function ReportPage() {
-  return (
-    <Suspense>
-      <Entry />
-    </Suspense>
-  );
+export default function LegacyRedeemPage() {
+  redirect("/260006/client-app/redeem");
 }

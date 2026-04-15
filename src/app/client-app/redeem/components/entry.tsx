@@ -88,7 +88,7 @@ export const Entry = ({ projectConfig }: EntryProps) => {
   const config = projectConfig ?? {
     slug: "260006",
     projectCode: "nx-gs-thienlong-260006",
-    displayName: "Thiên Long - Lễ 30/4",
+    displayName: "Thiên Long Activation 30-04",
     firebaseBucketPath: "thienlong-holiday-304-2026/redeem",
     hasSchemeSelector: false,
     schemes: [

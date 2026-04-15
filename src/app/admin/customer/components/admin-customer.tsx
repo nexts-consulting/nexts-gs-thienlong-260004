@@ -46,7 +46,7 @@ export default function AdminCustomerPage({ projectConfig }: AdminCustomerPagePr
     ? getAllGiftConfigs(projectConfig)
     : [{ id: "holiday_304_gift", name: "Khăn quàng Cờ Việt Nam & Trải nghiệm tô vẽ nón lá" }];
 
-  const displayName = projectConfig?.displayName ?? "Thiên Long - Lễ 30/4";
+  const displayName = projectConfig?.displayName ?? "Thiên Long Activation 30-04";
 
   // Build scheme options for filter
   const schemeOptions = projectConfig?.schemes.map((s) => ({

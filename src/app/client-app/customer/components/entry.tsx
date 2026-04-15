@@ -84,7 +84,7 @@ export const Entry = ({ projectConfig }: EntryProps) => {
     ? getAllGiftConfigs(projectConfig)
     : [{ id: "holiday_304_gift", name: "Khăn quàng Cờ Việt Nam & Trải nghiệm tô vẽ nón lá" }];
 
-  const displayName = projectConfig?.displayName ?? "Thiên Long - Lễ 30/4";
+  const displayName = projectConfig?.displayName ?? "Thiên Long Activation 30-04";
 
   // Parent app data
   const [currentAttendance, setCurrentAttendance] = useState<CurrentAttendance | null>(null);

@@ -33,7 +33,7 @@ export interface ProjectConfig {
 const PROJECT_260004: ProjectConfig = {
   slug: "260004",
   projectCode: "nx-gs-thienlong-260004",
-  displayName: "Thiên Long - PC Inline & POSM",
+  displayName: "Thiên Long PG Inline Mùa Thi",
   firebaseBucketPath: "thienlong-260004-2026/redeem",
   hasSchemeSelector: true,
   schemes: [
@@ -91,7 +91,7 @@ const PROJECT_260004: ProjectConfig = {
 const PROJECT_260005: ProjectConfig = {
   slug: "260005",
   projectCode: "nx-gs-thienlong-260005",
-  displayName: "Thiên Long - Booth & Standee",
+  displayName: "Thiên Long Activation Bút Gel",
   firebaseBucketPath: "thienlong-260005-2026/redeem",
   hasSchemeSelector: true,
   schemes: [
@@ -121,7 +121,7 @@ const PROJECT_260005: ProjectConfig = {
 const PROJECT_260006: ProjectConfig = {
   slug: "260006",
   projectCode: "nx-gs-thienlong-260006",
-  displayName: "Thiên Long - Lễ 30/4",
+  displayName: "Thiên Long Activation 30-04",
   firebaseBucketPath: "thienlong-holiday-304-2026/redeem",
   hasSchemeSelector: false,
   schemes: [

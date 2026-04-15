@@ -79,6 +79,13 @@ export default function AdminCustomerPage({ projectConfig }: AdminCustomerPagePr
   const [customerName, setCustomerName] = useState("");
   const [schemeFilter, setSchemeFilter] = useState<string | undefined>(undefined);
 
+  const getCurrentInvoiceAmount = (record: RedeemReportEntry) => {
+    const verification = (record.other_data as any)?.verification;
+    return verification?.adjustedAmount ?? record.sale_data?.totalInvoice ?? 0;
+  };
+
+  const formatCurrencyValue = (value: number) => `${value.toLocaleString("vi-VN")} ₫`;
+
   // Pagination state
   const [pagination, setPagination] = useState<TablePaginationConfig>({
     current: 1,
@@ -249,14 +256,61 @@ export default function AdminCustomerPage({ projectConfig }: AdminCustomerPagePr
       const values = await verificationForm.validateFields();
       setSaving(true);
 
+      const oldAmount = getCurrentInvoiceAmount(selectedRecord);
+      const hasAdjustedAmount =
+        typeof values.adjustedAmount === "number" && !Number.isNaN(values.adjustedAmount);
+      const autoAmountNote = hasAdjustedAmount
+        ? `đã sửa số tiền từ ${formatCurrencyValue(oldAmount)} thành ${formatCurrencyValue(values.adjustedAmount)}`
+        : undefined;
+      const finalVerificationNote = hasAdjustedAmount ? autoAmountNote : values.verificationNote;
+
       const result = await updateRedeemReport({
         id: selectedRecord.id,
         verificationStatus: values.verificationStatus,
         adjustedAmount: values.adjustedAmount,
-        verificationNote: values.verificationNote,
+        verificationNote: finalVerificationNote,
       });
 
       if (result.success) {
+        const updatedSelectedRecord: RedeemReportEntry = hasAdjustedAmount
+          ? {
+            ...selectedRecord,
+            sale_data: {
+              ...selectedRecord.sale_data,
+              totalInvoice: values.adjustedAmount,
+            },
+            other_data: {
+              ...(selectedRecord.other_data as any),
+              verification: {
+                ...((selectedRecord.other_data as any)?.verification ?? {}),
+                status: values.verificationStatus,
+                adjustedAmount: values.adjustedAmount,
+                note: finalVerificationNote,
+                verifiedAt: dayjs().toISOString(),
+              },
+            },
+          }
+          : {
+            ...selectedRecord,
+            other_data: {
+              ...(selectedRecord.other_data as any),
+              verification: {
+                ...((selectedRecord.other_data as any)?.verification ?? {}),
+                status: values.verificationStatus,
+                adjustedAmount: values.adjustedAmount,
+                note: finalVerificationNote,
+                verifiedAt: dayjs().toISOString(),
+              },
+            },
+          };
+
+        setSelectedRecord(updatedSelectedRecord);
+        setData((prev) =>
+          prev.map((record) =>
+            record.id === selectedRecord.id ? updatedSelectedRecord : record
+          )
+        );
+        verificationForm.setFieldsValue({ verificationNote: finalVerificationNote });
         message.success("Cập nhật thành công");
         setDetailModalVisible(false);
         fetchData(pagination.current, pagination.pageSize);
@@ -333,7 +387,7 @@ export default function AdminCustomerPage({ projectConfig }: AdminCustomerPagePr
           "Chương trình": schemeName,
           "Tên khách hàng": record.customer_name || "",
           "Số điện thoại": record.phone_number || "",
-          "Tổng hóa đơn (VNĐ)": record.sale_data?.totalInvoice || 0,
+          "Tổng hóa đơn (VNĐ)": getCurrentInvoiceAmount(record),
           "Số hóa đơn": record.bill_number || "",
           ...giftColumns,
           "Trạng thái kiểm tra": verificationStatus,
@@ -565,7 +619,7 @@ export default function AdminCustomerPage({ projectConfig }: AdminCustomerPagePr
       width: 120,
       align: "right",
       render: (_text, record) => {
-        const total = record.sale_data?.totalInvoice || 0;
+        const total = getCurrentInvoiceAmount(record);
         return (
           <span className="font-medium">
             {total.toLocaleString("vi-VN")} ₫
@@ -835,7 +889,7 @@ export default function AdminCustomerPage({ projectConfig }: AdminCustomerPagePr
                   )}
                   <Descriptions.Item label="Tổng hóa đơn">
                     <Text strong className="text-green-600">
-                      {(selectedRecord.sale_data?.totalInvoice || 0).toLocaleString("vi-VN")} ₫
+                      {getCurrentInvoiceAmount(selectedRecord).toLocaleString("vi-VN")} ₫
                     </Text>
                   </Descriptions.Item>
                   <Descriptions.Item label="Số hóa đơn">
@@ -897,6 +951,20 @@ export default function AdminCustomerPage({ projectConfig }: AdminCustomerPagePr
                   form={verificationForm}
                   layout="vertical"
                   size="small"
+                  onValuesChange={(changedValues, allValues) => {
+                    if (
+                      Object.prototype.hasOwnProperty.call(changedValues, "adjustedAmount") &&
+                      selectedRecord
+                    ) {
+                      const adjustedAmount = allValues.adjustedAmount;
+                      if (typeof adjustedAmount === "number" && !Number.isNaN(adjustedAmount)) {
+                        const oldAmount = getCurrentInvoiceAmount(selectedRecord);
+                        verificationForm.setFieldsValue({
+                          verificationNote: `đã sửa số tiền từ ${formatCurrencyValue(oldAmount)} thành ${formatCurrencyValue(adjustedAmount)}`,
+                        });
+                      }
+                    }
+                  }}
                   initialValues={{
                     verificationStatus: "correct",
                   }}

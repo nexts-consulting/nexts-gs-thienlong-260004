@@ -366,12 +366,6 @@ export const Entry = ({ projectConfig }: EntryProps) => {
 
     const validationErrors: string[] = [];
 
-    if (!phone) {
-      validationErrors.push("Số điện thoại không được để trống");
-    } else if (!phone.match(/^(0[3|5|7|8|9])+([0-9]{8})$/)) {
-      validationErrors.push("Số điện thoại không hợp lệ");
-    }
-
     if (!fullName) {
       validationErrors.push("Họ tên khách hàng không được để trống");
     }

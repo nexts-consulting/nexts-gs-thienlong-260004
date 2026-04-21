@@ -86,7 +86,7 @@ const PROJECT_260004: ProjectConfig = {
     {
       id: "260004_scheme_6",
       name: "Scheme 6 - Flexio",
-      description: "Flexio",
+      description: "Quà tặng sản phẩm Flexio",
       subCode: "flexio",
       gifts: [
         { id: "260004_s6_flexio", name: "Quà Flexio" },

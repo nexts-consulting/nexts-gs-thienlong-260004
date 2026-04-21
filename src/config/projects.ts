@@ -83,6 +83,16 @@ const PROJECT_260004: ProjectConfig = {
         { id: "260004_s5_hop_but_son", name: "Hộp bút sơn" },
       ],
     },
+    {
+      id: "260004_scheme_6",
+      name: "Scheme 6 - Flexio",
+      description: "Flexio",
+      subCode: "flexio",
+      gifts: [
+        { id: "260004_s6_flexio", name: "Quà Flexio" },
+      ],
+    },
+    
   ],
 };
 

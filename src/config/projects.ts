@@ -43,8 +43,8 @@ const PROJECT_260004: ProjectConfig = {
       description: "Hóa đơn Colokit đạt giá trị từ 69K",
       subCode: "colokit_69k",
       gifts: [
-        { id: "260004_s1_tap_chong_loa", name: "Tập chống lóa NB-115/AK (Kid)", selectable: true },
-        { id: "260004_s1_but_gel_ds", name: "Bút gel DS Gel-057/DS (Teen)", selectable: true },
+        { id: "260004_s1_but_gel_ak", name: "Bút gel DS Gel-073/AK", selectable: true },
+        { id: "260004_s1_but_gel_ds", name: "Bút gel DS Gel-057/DS", selectable: true },
       ],
     },
     {

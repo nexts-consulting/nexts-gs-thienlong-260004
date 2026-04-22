@@ -421,7 +421,7 @@ export interface ListCustomerReportsParams {
   locationKeyword?: string; // Partial match by location name/code
   dateFrom?: string; // Start date for range (yyyy-MM-dd)
   dateTo?: string; // End date for range (yyyy-MM-dd)
-  schemeIn?: string[]; // Filter by scheme IDs (for project-level filtering)
+  subCode?: string; // Filter by scheme IDs (for project-level filtering)
   page?: number;
   size?: number;
 }
@@ -465,7 +465,7 @@ export const listCustomerReports = async (
       locationKeyword,
       dateFrom,
       dateTo,
-      schemeIn,
+      subCode,
       page = 0,
       size = 10
     } = params;
@@ -476,8 +476,8 @@ export const listCustomerReports = async (
       .order("created_at", { ascending: false });
 
     // Filter by project schemes
-    if (schemeIn && schemeIn.length > 0) {
-      query = query.in("scheme", schemeIn);
+    if (subCode) {
+      query = query.eq("sub_code", subCode);
     }
 
     // Filter by single date if provided
@@ -570,7 +570,7 @@ export const listAllCustomerReports = async (
       locationKeyword,
       dateFrom,
       dateTo,
-      schemeIn,
+      subCode,
     } = params;
 
     let query = supabaseFmsService.client
@@ -579,8 +579,8 @@ export const listAllCustomerReports = async (
       .order("created_at", { ascending: false });
 
     // Filter by project schemes
-    if (schemeIn && schemeIn.length > 0) {
-      query = query.in("scheme", schemeIn);
+    if (subCode) {
+      query = query.eq("sub_code", subCode);
     }
 
     // Apply same filters as listCustomerReports

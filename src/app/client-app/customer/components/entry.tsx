@@ -85,6 +85,16 @@ export const Entry = ({ projectConfig }: EntryProps) => {
     : [{ id: "holiday_304_gift", name: "Khăn quàng Cờ Việt Nam & Trải nghiệm tô vẽ nón lá" }];
 
   const displayName = projectConfig?.displayName ?? "Thiên Long Activation 30-04";
+  const getSchemeDisplayName = (schemeValue?: string | null) => {
+    const schemeIds = (schemeValue ?? "")
+      .split(",")
+      .map((id) => id.trim())
+      .filter(Boolean);
+    if (schemeIds.length === 0) return "-";
+    return schemeIds
+      .map((schemeId) => projectConfig?.schemes.find((s) => s.id === schemeId)?.name ?? schemeId)
+      .join(", ");
+  };
 
   // Parent app data
   const [currentAttendance, setCurrentAttendance] = useState<CurrentAttendance | null>(null);
@@ -170,7 +180,7 @@ export const Entry = ({ projectConfig }: EntryProps) => {
         date: dateString,
         createdBy: currentAttendance.username,
         workshiftId: currentAttendance.workshift_id?.toString(),
-        schemeIn: schemeIds && schemeIds.length > 0 ? schemeIds : undefined,
+        subCode: projectConfig?.projectCode ?? "",
         page: page,
         size: INITIAL_PAGE_SIZE,
       });
@@ -274,7 +284,7 @@ export const Entry = ({ projectConfig }: EntryProps) => {
                 <p className="text-xs text-gray-600 mb-2">{customer.phone_number}</p>
                 {customer.scheme && (
                   <p className="text-xs text-primary-50 font-medium mb-1">
-                    {projectConfig?.schemes.find((s) => s.id === customer.scheme)?.name ?? customer.scheme}
+                    {getSchemeDisplayName(customer.scheme)}
                   </p>
                 )}
                 <p className="text-xs text-gray-600 mb-2">
@@ -348,7 +358,7 @@ export const Entry = ({ projectConfig }: EntryProps) => {
                       <div className="flex justify-between">
                         <span className="text-sm text-gray-600">Chương trình:</span>
                         <span className="text-sm font-medium text-primary-50">
-                          {projectConfig?.schemes.find((s) => s.id === selectedCustomer.scheme)?.name ?? selectedCustomer.scheme}
+                          {getSchemeDisplayName(selectedCustomer.scheme)}
                         </span>
                       </div>
                     )}

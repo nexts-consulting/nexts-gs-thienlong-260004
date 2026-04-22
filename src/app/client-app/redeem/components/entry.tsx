@@ -121,12 +121,14 @@ export const Entry = ({ projectConfig }: EntryProps) => {
   const [isReady, setIsReady] = useState(false);
 
   // Scheme selection (for multi-scheme projects)
-  const [selectedSchemeIndex, setSelectedSchemeIndex] = useState<number | null>(
-    config.hasSchemeSelector ? null : 0
+  const [selectedSchemeIds, setSelectedSchemeIds] = useState<string[]>(
+    config.hasSchemeSelector ? [] : [config.schemes[0]?.id].filter(Boolean) as string[]
   );
 
-  const selectedScheme: SchemeConfig | null =
-    selectedSchemeIndex !== null ? config.schemes[selectedSchemeIndex] : null;
+  const selectedSchemes: SchemeConfig[] = useMemo(
+    () => config.schemes.filter((scheme) => selectedSchemeIds.includes(scheme.id)),
+    [config.schemes, selectedSchemeIds]
+  );
 
   // Form states
   const [phone, setPhone] = useState("");
@@ -134,7 +136,7 @@ export const Entry = ({ projectConfig }: EntryProps) => {
   const [giftReceiveImageUrl, setGiftReceiveImageUrl] = useState<string | null>(null);
   const [invoiceImageUrls, setInvoiceImageUrls] = useState<string[]>([]);
   const [gifts, setGifts] = useState<Record<string, number>>({});
-  const [selectedGiftRadio, setSelectedGiftRadio] = useState<string | null>(null);
+  const [selectedGiftRadioByScheme, setSelectedGiftRadioByScheme] = useState<Record<string, string | null>>({});
   const [formKey, setFormKey] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [componentKey, setComponentKey] = useState(0);
@@ -185,12 +187,6 @@ export const Entry = ({ projectConfig }: EntryProps) => {
 
   const MAX_GIFTS_PER_INVOICE = 100;
 
-  // Determine if current scheme uses selectable (radio) gifts
-  const hasSelectableGifts = selectedScheme?.gifts.some((g) => g.selectable) ?? false;
-
-  // Gift options from the selected scheme
-  const giftOptions = selectedScheme?.gifts ?? [];
-
   // Firebase cloud config for image uploads
   const invoiceCloudConfig: CloudConfig = useMemo(() => {
     const today = new Date().toISOString().slice(0, 10);
@@ -225,21 +221,20 @@ export const Entry = ({ projectConfig }: EntryProps) => {
   const getCustomerGifts = () => {
     const customerGifts: Array<{ name: string; qty: number }> = [];
 
-    if (hasSelectableGifts && selectedGiftRadio) {
-      const gift = giftOptions.find((g) => g.id === selectedGiftRadio);
-      if (gift) {
-        customerGifts.push({ name: gift.name, qty: 1 });
-      }
-    } else {
-      Object.entries(gifts).forEach(([giftId, qty]) => {
-        if (qty > 0) {
-          const gift = giftOptions.find((g) => g.id === giftId);
-          if (gift) {
-            customerGifts.push({ name: gift.name, qty });
-          }
+    const selectedGiftNameById = new Map<string, string>();
+
+    selectedSchemes.forEach((scheme) => {
+      scheme.gifts.forEach((gift) => selectedGiftNameById.set(gift.id, gift.name));
+    });
+
+    Object.entries(gifts).forEach(([giftId, qty]) => {
+      if (qty > 0) {
+        const giftName = selectedGiftNameById.get(giftId);
+        if (giftName) {
+          customerGifts.push({ name: giftName, qty });
         }
-      });
-    }
+      }
+    });
 
     return customerGifts;
   };
@@ -269,17 +264,41 @@ export const Entry = ({ projectConfig }: EntryProps) => {
     });
   };
 
-  // Reset gifts when scheme changes
+  // Keep gifts and radio selections in sync with selected schemes
   useEffect(() => {
-    setGifts({});
-    setSelectedGiftRadio(null);
-  }, [selectedSchemeIndex]);
+    const selectedSchemeIdSet = new Set(selectedSchemeIds);
+    const validGiftIds = new Set(
+      config.schemes
+        .filter((scheme) => selectedSchemeIdSet.has(scheme.id))
+        .flatMap((scheme) => scheme.gifts.map((gift) => gift.id))
+    );
+
+    setGifts((prev) => {
+      const next = Object.entries(prev).reduce<Record<string, number>>((acc, [giftId, qty]) => {
+        if (validGiftIds.has(giftId)) {
+          acc[giftId] = qty;
+        }
+        return acc;
+      }, {});
+      return next;
+    });
+
+    setSelectedGiftRadioByScheme((prev) => {
+      const next = Object.entries(prev).reduce<Record<string, string | null>>((acc, [schemeId, giftId]) => {
+        if (selectedSchemeIdSet.has(schemeId)) {
+          acc[schemeId] = giftId;
+        }
+        return acc;
+      }, {});
+      return next;
+    });
+  }, [config.schemes, selectedSchemeIds]);
 
   // Reset gifts when totalInvoice changes
   useEffect(() => {
     if (!totalInvoice) {
       setGifts({});
-      setSelectedGiftRadio(null);
+      setSelectedGiftRadioByScheme({});
     }
   }, [totalInvoice]);
 
@@ -355,10 +374,10 @@ export const Entry = ({ projectConfig }: EntryProps) => {
       return;
     }
 
-    if (!selectedScheme) {
+    if (selectedSchemes.length === 0) {
       notification.error({
         title: "Lỗi",
-        description: "Vui lòng chọn chương trình khuyến mãi.",
+        description: "Vui lòng chọn ít nhất 1 chương trình khuyến mãi.",
         options: { duration: 4000 },
       });
       return;
@@ -385,11 +404,17 @@ export const Entry = ({ projectConfig }: EntryProps) => {
     }
 
     // Validate gift selection
-    if (hasSelectableGifts && !selectedGiftRadio) {
-      validationErrors.push("Vui lòng chọn quà tặng");
-    } else if (!hasSelectableGifts && totalGiftQuantity === 0) {
+    const hasAnyGiftSelected = totalGiftQuantity > 0;
+    if (!hasAnyGiftSelected) {
       validationErrors.push("Vui lòng chọn ít nhất 1 quà tặng");
     }
+
+    selectedSchemes.forEach((scheme) => {
+      const hasSelectableGiftsInScheme = scheme.gifts.some((gift) => gift.selectable);
+      if (hasSelectableGiftsInScheme && !selectedGiftRadioByScheme[scheme.id]) {
+        validationErrors.push(`Vui lòng chọn quà cho "${scheme.name}"`);
+      }
+    });
 
     if (validationErrors.length > 0) {
       notification.error({
@@ -412,21 +437,21 @@ export const Entry = ({ projectConfig }: EntryProps) => {
       // Build gift data
       const allGifts: Record<string, number> = {};
 
-      if (hasSelectableGifts && selectedGiftRadio) {
-        allGifts[selectedGiftRadio] = 1;
-      } else {
-        Object.entries(gifts).forEach(([giftId, qty]) => {
-          if (qty > 0) {
-            allGifts[giftId] = qty;
-          }
-        });
-      }
+      Object.entries(gifts).forEach(([giftId, qty]) => {
+        if (qty > 0) {
+          allGifts[giftId] = qty;
+        }
+      });
+
+      const promotionSchemeValue = selectedSchemes.map((scheme) => scheme.id).join(",");
+      const schemeValue = selectedSchemes.map((scheme) => scheme.id).join(",");
+      const subCodeValue = projectConfig?.projectCode ?? "";
 
       const response = await createRedeemReport({
         customerPhone: phone,
         customerName: fullName,
         totalInvoice: totalInvoice,
-        promotionScheme: selectedScheme.id,
+        promotionScheme: promotionSchemeValue,
         gifts: allGifts,
         giftReceiveImageUrl: giftReceiveImageUrl || "",
         invoiceImageUrls: invoiceImageUrls,
@@ -435,8 +460,15 @@ export const Entry = ({ projectConfig }: EntryProps) => {
         workshiftId: currentAttendance.workshift_id?.toString(),
         workshiftName: currentAttendance.workshift_name,
         createdBy: currentAttendance.username,
-        subCode: selectedScheme.subCode,
-        scheme: selectedScheme.id,
+        subCode: subCodeValue,
+        scheme: schemeValue,
+        otherData: {
+          selectedSchemes: selectedSchemes.map((scheme) => ({
+            id: scheme.id,
+            name: scheme.name,
+            subCode: scheme.subCode,
+          })),
+        },
       });
 
       if (response.success) {
@@ -454,10 +486,10 @@ export const Entry = ({ projectConfig }: EntryProps) => {
         setGiftReceiveImageUrl(null);
         setInvoiceImageUrls([]);
         setGifts({});
-        setSelectedGiftRadio(null);
+        setSelectedGiftRadioByScheme({});
         setFormKey((prev) => prev + 1);
         if (config.hasSchemeSelector) {
-          setSelectedSchemeIndex(null);
+          setSelectedSchemeIds([]);
         }
 
         // Notify parent app
@@ -517,50 +549,8 @@ export const Entry = ({ projectConfig }: EntryProps) => {
         <div className="mb-16">
           <div className="flex-1 overflow-auto p-4">
 
-            {/* Scheme Selector (for multi-scheme projects) */}
-            {config.hasSchemeSelector && (
-              <div className="mb-6">
-                <h3 className="mb-3 text-base font-semibold text-gray-800">
-                  Chọn chương trình khuyến mãi
-                </h3>
-                <div className="space-y-2">
-                  {config.schemes.map((scheme, index) => (
-                    <div
-                      key={scheme.id}
-                      className={StyleUtil.cn(
-                        "border p-4 cursor-pointer transition-colors",
-                        selectedSchemeIndex === index
-                          ? "border-primary-50 bg-primary-50/5"
-                          : "border-gray-200 bg-white hover:border-gray-300"
-                      )}
-                      onClick={() => setSelectedSchemeIndex(index)}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div
-                          className={StyleUtil.cn(
-                            "w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0",
-                            selectedSchemeIndex === index
-                              ? "border-primary-50"
-                              : "border-gray-300"
-                          )}
-                        >
-                          {selectedSchemeIndex === index && (
-                            <div className="w-3 h-3 rounded-full bg-primary-50" />
-                          )}
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium text-gray-900">{scheme.name}</p>
-                          <p className="text-xs text-gray-500 mt-0.5">{scheme.description}</p>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
             {/* General Information */}
-            <div className={StyleUtil.cn("mb-6", { "opacity-50 pointer-events-none": config.hasSchemeSelector && selectedScheme === null })}>
+            <div className={StyleUtil.cn("mb-6")}>
               <h3 className="mb-3 text-base font-semibold text-gray-800">
                 Thông tin khách hàng và hóa đơn
               </h3>
@@ -623,75 +613,149 @@ export const Entry = ({ projectConfig }: EntryProps) => {
               </div>
             </div>
 
+            {/* Scheme Selector (for multi-scheme projects) */}
+            {config.hasSchemeSelector && (
+              <div className="mb-6">
+                <h3 className="mb-3 text-base font-semibold text-gray-800">
+                  Chọn chương trình khuyến mãi
+                </h3>
+                <div className="space-y-2">
+                  {config.schemes.map((scheme) => {
+                    const isSelected = selectedSchemeIds.includes(scheme.id);
+                    return (
+                    <div
+                      key={scheme.id}
+                      className={StyleUtil.cn(
+                        "border p-4 cursor-pointer transition-colors",
+                        isSelected
+                          ? "border-primary-50 bg-primary-50/5"
+                          : "border-gray-200 bg-white hover:border-gray-300"
+                      )}
+                      onClick={() => {
+                        setSelectedSchemeIds((prev) =>
+                          prev.includes(scheme.id)
+                            ? prev.filter((id) => id !== scheme.id)
+                            : [...prev, scheme.id]
+                        );
+                      }}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div
+                          className={StyleUtil.cn(
+                            "w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0",
+                            isSelected
+                              ? "border-primary-50"
+                              : "border-gray-300"
+                          )}
+                        >
+                          {isSelected && (
+                            <Icons.CheckboxCheckedFilled className="w-3 h-3 text-primary-50" />
+                          )}
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-gray-900">{scheme.name}</p>
+                          <p className="text-xs text-gray-500 mt-0.5">{scheme.description}</p>
+                        </div>
+                      </div>
+                    </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             {/* Gift Options */}
-            {selectedScheme && (
+            {selectedSchemes.length > 0 && (
               <div className={StyleUtil.cn("mb-6", { "opacity-50": !totalInvoice })}>
                 <h3 className="mb-3 text-base font-semibold text-gray-800">
                   Chọn quà tặng
                 </h3>
 
-                {/* Radio mode: selectable gifts (pick one) */}
-                {hasSelectableGifts ? (
-                  <div className="space-y-2 bg-white p-4">
-                    {giftOptions.map((gift) => (
-                      <label
-                        key={gift.id}
-                        className={StyleUtil.cn(
-                          "flex items-center gap-3 p-3 border cursor-pointer transition-colors",
-                          selectedGiftRadio === gift.id
-                            ? "border-primary-50 bg-primary-50/5"
-                            : "border-gray-200 hover:border-gray-300"
+                <div className="space-y-4">
+                  {selectedSchemes.map((scheme) => {
+                    const hasSelectableGiftsInScheme = scheme.gifts.some((gift) => gift.selectable);
+                    return (
+                      <div key={scheme.id} className="bg-white p-4">
+                        <p className="mb-2 text-sm font-semibold text-gray-800">{scheme.name}</p>
+                        <p className="mb-3 text-xs text-gray-500">{scheme.description}</p>
+
+                        {hasSelectableGiftsInScheme ? (
+                          <div className="space-y-2">
+                            {scheme.gifts.map((gift) => (
+                              <label
+                                key={gift.id}
+                                className={StyleUtil.cn(
+                                  "flex items-center gap-3 p-3 border cursor-pointer transition-colors",
+                                  selectedGiftRadioByScheme[scheme.id] === gift.id
+                                    ? "border-primary-50 bg-primary-50/5"
+                                    : "border-gray-200 hover:border-gray-300"
+                                )}
+                              >
+                                <input
+                                  type="radio"
+                                  name={`gift-selection-${scheme.id}`}
+                                  value={gift.id}
+                                  checked={selectedGiftRadioByScheme[scheme.id] === gift.id}
+                                  onChange={() => {
+                                    setSelectedGiftRadioByScheme((prev) => ({
+                                      ...prev,
+                                      [scheme.id]: gift.id,
+                                    }));
+                                    setGifts((prev) => {
+                                      const next = { ...prev };
+                                      scheme.gifts.forEach((schemeGift) => {
+                                        delete next[schemeGift.id];
+                                      });
+                                      next[gift.id] = 1;
+                                      return next;
+                                    });
+                                  }}
+                                  disabled={!totalInvoice}
+                                  className="h-4 w-4 accent-primary-50"
+                                />
+                                <span className="text-sm font-medium text-gray-900">{gift.name}</span>
+                              </label>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="divide-y divide-gray-200 bg-white">
+                            {scheme.gifts.map((gift) => {
+                              const qty = gifts[gift.id] || 0;
+                              return (
+                                <div key={gift.id} className="grid grid-cols-2 items-center gap-2 p-4">
+                                  <div className="col-span-1">
+                                    <p className="text-sm font-medium text-gray-900">{gift.name}</p>
+                                  </div>
+                                  <div className="flex items-center justify-end gap-2">
+                                    <IconButton
+                                      size="large"
+                                      variant="tertiary"
+                                      icon={Icons.Subtract}
+                                      onClick={() => adjustGift(gift.id, -1)}
+                                      disabled={qty === 0 || !totalInvoice}
+                                    />
+                                    <input
+                                      className="w-16 border border-gray-300 py-2 text-center text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary-50"
+                                      value={qty}
+                                      readOnly
+                                    />
+                                    <IconButton
+                                      size="large"
+                                      variant="tertiary"
+                                      icon={Icons.Add}
+                                      onClick={() => adjustGift(gift.id, 1)}
+                                      disabled={!totalInvoice}
+                                    />
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
                         )}
-                      >
-                        <input
-                          type="radio"
-                          name="gift-selection"
-                          value={gift.id}
-                          checked={selectedGiftRadio === gift.id}
-                          onChange={() => setSelectedGiftRadio(gift.id)}
-                          disabled={!totalInvoice}
-                          className="h-4 w-4 accent-primary-50"
-                        />
-                        <span className="text-sm font-medium text-gray-900">{gift.name}</span>
-                      </label>
-                    ))}
-                  </div>
-                ) : (
-                  /* Quantity stepper mode */
-                  <div className="divide-y divide-gray-200 bg-white">
-                    {giftOptions.map((gift) => {
-                      const qty = gifts[gift.id] || 0;
-                      return (
-                        <div key={gift.id} className="grid grid-cols-2 items-center gap-2 p-4">
-                          <div className="col-span-1">
-                            <p className="text-sm font-medium text-gray-900">{gift.name}</p>
-                          </div>
-                          <div className="flex items-center justify-end gap-2">
-                            <IconButton
-                              size="large"
-                              variant="tertiary"
-                              icon={Icons.Subtract}
-                              onClick={() => adjustGift(gift.id, -1)}
-                              disabled={qty === 0 || !totalInvoice}
-                            />
-                            <input
-                              className="w-16 border border-gray-300 py-2 text-center text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary-50"
-                              value={qty}
-                              readOnly
-                            />
-                            <IconButton
-                              size="large"
-                              variant="tertiary"
-                              icon={Icons.Add}
-                              onClick={() => adjustGift(gift.id, 1)}
-                              disabled={!totalInvoice}
-                            />
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             )}
 

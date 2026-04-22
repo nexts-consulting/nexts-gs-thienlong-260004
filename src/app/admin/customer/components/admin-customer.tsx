@@ -85,6 +85,36 @@ export default function AdminCustomerPage({ projectConfig }: AdminCustomerPagePr
   };
 
   const formatCurrencyValue = (value: number) => `${value.toLocaleString("vi-VN")} ₫`;
+  const parseSchemeIds = (schemeValue?: string | null) =>
+    (schemeValue ?? "")
+      .split(",")
+      .map((id) => id.trim())
+      .filter(Boolean);
+
+  const getRecordSchemeValue = (record: RedeemReportEntry) => {
+    if (record.scheme) return record.scheme;
+
+    const promotionScheme = record.sale_data?.promotionScheme;
+    if (promotionScheme) return promotionScheme;
+
+    const selectedSchemes = (record.other_data as any)?.selectedSchemes;
+    if (Array.isArray(selectedSchemes)) {
+      return selectedSchemes
+        .map((item: { id?: string }) => item?.id)
+        .filter(Boolean)
+        .join(",");
+    }
+
+    return "";
+  };
+
+  const getSchemeDisplayName = (schemeValue?: string | null) => {
+    const schemeIds = parseSchemeIds(schemeValue);
+    if (schemeIds.length === 0) return "-";
+    return schemeIds
+      .map((schemeId) => projectConfig?.schemes.find((s) => s.id === schemeId)?.name ?? schemeId)
+      .join(", ");
+  };
 
   // Pagination state
   const [pagination, setPagination] = useState<TablePaginationConfig>({
@@ -131,7 +161,9 @@ export default function AdminCustomerPage({ projectConfig }: AdminCustomerPagePr
       let filteredData = response.data;
       let filteredTotal = response.total;
       if (schemeFilter) {
-        filteredData = response.data.filter((r) => r.scheme === schemeFilter);
+        filteredData = response.data.filter((r) =>
+          parseSchemeIds(getRecordSchemeValue(r)).includes(schemeFilter)
+        );
         filteredTotal = filteredData.length;
       }
 
@@ -168,7 +200,7 @@ export default function AdminCustomerPage({ projectConfig }: AdminCustomerPagePr
           size: 10,
           dateFrom: initialDateRef.current.from,
           dateTo: initialDateRef.current.to,
-          schemeIn: projectSchemeIds.length > 0 ? projectSchemeIds : undefined,
+          subCode: projectConfig?.projectCode ?? "",
         });
         if (cancelled) return;
 
@@ -351,7 +383,9 @@ export default function AdminCustomerPage({ projectConfig }: AdminCustomerPagePr
 
       // Client-side filter by scheme
       if (schemeFilter) {
-        allData = allData.filter((r) => r.scheme === schemeFilter);
+        allData = allData.filter((r) =>
+          parseSchemeIds(getRecordSchemeValue(r)).includes(schemeFilter)
+        );
       }
 
       if (allData.length === 0) {
@@ -377,7 +411,7 @@ export default function AdminCustomerPage({ projectConfig }: AdminCustomerPagePr
           "Chưa kiểm tra";
 
         // Map scheme ID to name
-        const schemeName = projectConfig?.schemes.find((s) => s.id === record.scheme)?.name ?? record.scheme ?? "";
+        const schemeName = getSchemeDisplayName(getRecordSchemeValue(record));
 
         return {
           "STT": index + 1,
@@ -591,17 +625,15 @@ export default function AdminCustomerPage({ projectConfig }: AdminCustomerPagePr
         return dayjs(text).format("DD/MM/YYYY HH:mm");
       },
     },
-    // Show scheme column when project has multiple schemes
-    ...(projectConfig?.hasSchemeSelector ? [{
+    {
       title: "Chương trình",
       dataIndex: "scheme",
       key: "scheme",
       width: 180,
-      render: (text: string) => {
-        const scheme = projectConfig?.schemes.find((s) => s.id === text);
-        return scheme?.name ?? text ?? "-";
+      render: (_text: string, record) => {
+        return getSchemeDisplayName(getRecordSchemeValue(record));
       },
-    }] : []),
+    },
     {
       title: "Khách hàng",
       key: "customer",
@@ -777,20 +809,17 @@ export default function AdminCustomerPage({ projectConfig }: AdminCustomerPagePr
                 className="mt-1"
               />
             </Col>
-            {/* Scheme filter - only show for multi-scheme projects */}
-            {schemeOptions.length > 1 && (
-              <Col xs={24} sm={12} md={8} lg={6}>
-                <Text strong>Chương trình:</Text>
-                <Select
-                  value={schemeFilter}
-                  onChange={setSchemeFilter}
-                  allowClear
-                  placeholder="Tất cả chương trình"
-                  className="w-full mt-1"
-                  options={schemeOptions}
-                />
-              </Col>
-            )}
+            <Col xs={24} sm={12} md={8} lg={6}>
+              <Text strong>Chương trình:</Text>
+              <Select
+                value={schemeFilter}
+                onChange={setSchemeFilter}
+                allowClear
+                placeholder="Tất cả chương trình"
+                className="w-full mt-1"
+                options={schemeOptions}
+              />
+            </Col>
             <Col xs={24} sm={12} md={8} lg={6}>
               <div className="flex items-end h-full">
                 <Space className="mt-1">
@@ -880,13 +909,19 @@ export default function AdminCustomerPage({ projectConfig }: AdminCustomerPagePr
                   <Descriptions.Item label="Số điện thoại">
                     {selectedRecord.phone_number}
                   </Descriptions.Item>
-                  {selectedRecord.scheme && (
-                    <Descriptions.Item label="Chương trình" span={2}>
-                      <Tag color="blue">
-                        {projectConfig?.schemes.find((s) => s.id === selectedRecord.scheme)?.name ?? selectedRecord.scheme}
-                      </Tag>
-                    </Descriptions.Item>
-                  )}
+                  <Descriptions.Item label="Chương trình" span={2}>
+                    <div className="flex flex-wrap gap-2">
+                      {parseSchemeIds(getRecordSchemeValue(selectedRecord)).length > 0 ? (
+                        parseSchemeIds(getRecordSchemeValue(selectedRecord)).map((schemeId) => (
+                          <Tag key={schemeId} color="blue">
+                            {projectConfig?.schemes.find((s) => s.id === schemeId)?.name ?? schemeId}
+                          </Tag>
+                        ))
+                      ) : (
+                        <Tag color="default">-</Tag>
+                      )}
+                    </div>
+                  </Descriptions.Item>
                   <Descriptions.Item label="Tổng hóa đơn">
                     <Text strong className="text-green-600">
                       {getCurrentInvoiceAmount(selectedRecord).toLocaleString("vi-VN")} ₫

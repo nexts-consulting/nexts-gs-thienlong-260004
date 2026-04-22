@@ -43,8 +43,8 @@ const PROJECT_260004: ProjectConfig = {
       description: "Hóa đơn Colokit đạt giá trị từ 69K",
       subCode: "colokit_69k",
       gifts: [
-        { id: "260004_s1_but_gel_ak", name: "Bút gel DS Gel-073/AK", selectable: true },
-        { id: "260004_s1_but_gel_ds", name: "Bút gel DS Gel-057/DS", selectable: true },
+        { id: "260004_s1_but_gel_ak", name: "Bút gel DS Gel-073/AK"},
+        { id: "260004_s1_but_gel_ds", name: "Bút gel DS Gel-057/DS"},
       ],
     },
     {

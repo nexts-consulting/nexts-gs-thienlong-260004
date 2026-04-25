@@ -92,6 +92,13 @@ const PROJECT_260004: ProjectConfig = {
         { id: "260004_s6_flexio", name: "Quà Flexio" },
       ],
     },
+    {
+      id: "260004_scheme_bill_only",
+      name: "Ghi nhận bill",
+      description: "Chỉ ghi nhận bill, không có quà tặng",
+      subCode: "bill_only",
+      gifts: [],
+    },
     
   ],
 };
@@ -123,6 +130,13 @@ const PROJECT_260005: ProjectConfig = {
         { id: "260005_s2_hl03_luck_gel040", name: "HL-03/LUCK + GEL-040/LUCK" },
       ],
     },
+    {
+      id: "260005_scheme_bill_only",
+      name: "Ghi nhận bill",
+      description: "Chỉ ghi nhận bill, không có quà tặng",
+      subCode: "bill_only",
+      gifts: [],
+    },
   ],
 };
 
@@ -143,6 +157,13 @@ const PROJECT_260006: ProjectConfig = {
       gifts: [
         { id: "holiday_304_gift", name: "Khăn quàng Cờ Việt Nam & Trải nghiệm tô vẽ nón lá" },
       ],
+    },
+    {
+      id: "260006_scheme_bill_only",
+      name: "Ghi nhận bill",
+      description: "Chỉ ghi nhận bill, không có quà tặng",
+      subCode: "bill_only",
+      gifts: [],
     },
   ],
 };

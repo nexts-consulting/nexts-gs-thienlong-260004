@@ -404,17 +404,17 @@ export const Entry = ({ projectConfig }: EntryProps) => {
     }
 
     // Validate gift selection
-    const hasAnyGiftSelected = totalGiftQuantity > 0;
-    if (!hasAnyGiftSelected) {
-      validationErrors.push("Vui lòng chọn ít nhất 1 quà tặng");
-    }
+    // const hasAnyGiftSelected = totalGiftQuantity > 0;
+    // if (!hasAnyGiftSelected) {
+    //   validationErrors.push("Vui lòng chọn ít nhất 1 quà tặng");
+    // }
 
-    selectedSchemes.forEach((scheme) => {
-      const hasSelectableGiftsInScheme = scheme.gifts.some((gift) => gift.selectable);
-      if (hasSelectableGiftsInScheme && !selectedGiftRadioByScheme[scheme.id]) {
-        validationErrors.push(`Vui lòng chọn quà cho "${scheme.name}"`);
-      }
-    });
+    // selectedSchemes.forEach((scheme) => {
+    //   const hasSelectableGiftsInScheme = scheme.gifts.some((gift) => gift.selectable);
+    //   if (hasSelectableGiftsInScheme && !selectedGiftRadioByScheme[scheme.id]) {
+    //     validationErrors.push(`Vui lòng chọn quà cho "${scheme.name}"`);
+    //   }
+    // });
 
     if (validationErrors.length > 0) {
       notification.error({

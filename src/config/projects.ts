@@ -155,7 +155,9 @@ const PROJECT_260006: ProjectConfig = {
       description: "Hóa đơn Thiên Long từ 75K",
       subCode: "thienlong_75k",
       gifts: [
-        { id: "holiday_304_gift", name: "Khăn quàng Cờ Việt Nam & Trải nghiệm tô vẽ nón lá" },
+        // { id: "holiday_304_gift", name: "Khăn quàng Cờ Việt Nam & Trải nghiệm tô vẽ nón lá" },
+        { id: "holiday_304_gift_vietnam_flag", name: "Khăn quàng Cờ Việt Nam" },
+        { id: "holiday_304_gift_paint_experience", name: "Trải nghiệm tô vẽ nón lá" },
       ],
     },
     {

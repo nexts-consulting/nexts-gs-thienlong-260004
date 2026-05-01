@@ -48,6 +48,15 @@ const PROJECT_260004: ProjectConfig = {
       ],
     },
     {
+      id: "260004_scheme_7",
+      name: "Scheme 69K",
+      description: "Hóa đơn đạt giá trị từ 69K",
+      subCode: "scheme_69k",
+      gifts: [
+        { id: "260004_s7_69k", name: "Quà tặng 69K"},
+      ],
+    },
+    {
       id: "260004_scheme_2",
       name: "Scheme 2 - BST Akooland 119K",
       description: "Hóa đơn 119K các sản phẩm BST Akooland",

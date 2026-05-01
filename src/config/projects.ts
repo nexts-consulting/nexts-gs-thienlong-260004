@@ -131,6 +131,13 @@ const PROJECT_260005: ProjectConfig = {
       ],
     },
     {
+      id: "260005_scheme_3",
+      name: "Scheme 3 - TRANG TRÍ BÚT",
+      description: "Mua BÚT GEL-071/PLUS, GEL-072/PLUS, GEL-050/PLUS",
+      subCode: "but_gel",
+      gifts: [],
+    },
+    {
       id: "260005_scheme_bill_only",
       name: "Ghi nhận bill",
       description: "Chỉ ghi nhận bill, không có quà tặng",

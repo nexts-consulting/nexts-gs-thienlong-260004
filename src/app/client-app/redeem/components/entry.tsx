@@ -397,9 +397,7 @@ export const Entry = ({ projectConfig }: EntryProps) => {
       }
     }
 
-    if (!giftReceiveImageUrl) {
-      validationErrors.push("Chụp hình khách nhận quà");
-    } else if (isLocalOrPendingImageUrl(giftReceiveImageUrl)) {
+    if (isLocalOrPendingImageUrl(giftReceiveImageUrl)) {
       validationErrors.push("Ảnh khách nhận quà chưa tải lên xong. Vui lòng chờ upload hoàn tất.");
     }
 

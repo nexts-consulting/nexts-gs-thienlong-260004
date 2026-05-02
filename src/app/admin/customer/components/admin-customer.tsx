@@ -136,6 +136,7 @@ export default function AdminCustomerPage({ projectConfig }: AdminCustomerPagePr
         page: page - 1,
         size: pageSize,
         schemeIn: projectSchemeIds.length > 0 ? projectSchemeIds : undefined,
+        ...(projectConfig?.projectCode ? { subCode: projectConfig.projectCode } : {}),
       };
 
       if (overrides) {
@@ -200,7 +201,7 @@ export default function AdminCustomerPage({ projectConfig }: AdminCustomerPagePr
           size: 10,
           dateFrom: initialDateRef.current.from,
           dateTo: initialDateRef.current.to,
-          subCode: projectConfig?.projectCode ?? "",
+          ...(projectConfig?.projectCode ? { subCode: projectConfig.projectCode } : {}),
         });
         if (cancelled) return;
 
@@ -226,7 +227,7 @@ export default function AdminCustomerPage({ projectConfig }: AdminCustomerPagePr
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [projectConfig?.projectCode]);
 
   useEffect(() => {
     const inIframe = window.self !== window.top;
@@ -364,6 +365,7 @@ export default function AdminCustomerPage({ projectConfig }: AdminCustomerPagePr
     try {
       const params: any = {
         schemeIn: projectSchemeIds.length > 0 ? projectSchemeIds : undefined,
+        ...(projectConfig?.projectCode ? { subCode: projectConfig.projectCode } : {}),
       };
 
       if (dateRange[0] && dateRange[1]) {

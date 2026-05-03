@@ -40,6 +40,34 @@ interface AdminCustomerPageProps {
   projectConfig?: ProjectConfig;
 }
 
+/** Matches the auto-generated first line when adjusting invoice amount */
+const AMOUNT_ADJUSTMENT_FIRST_LINE =
+  /^đã sửa số tiền từ .+ thành .+$/;
+
+/** Keeps user-added lines when recomputing the amount note on save */
+function mergeAmountAutoNoteWithUserText(autoLine: string, userNote: string): string {
+  const trimmed = userNote.trim();
+  if (!trimmed) return autoLine;
+  const lines = trimmed.split("\n");
+  if (lines[0] && AMOUNT_ADJUSTMENT_FIRST_LINE.test(lines[0].trim())) {
+    const rest = lines.slice(1).join("\n").trim();
+    return rest ? `${autoLine}\n${rest}` : autoLine;
+  }
+  return `${autoLine}\n${trimmed}`;
+}
+
+/** When the amount field changes, refresh only the auto line and preserve extra note lines */
+function replaceAmountAutoLineOnAmountChange(newAutoLine: string, currentNote: string): string {
+  const trimmed = currentNote.trim();
+  if (!trimmed) return newAutoLine;
+  const lines = trimmed.split("\n");
+  if (lines[0] && AMOUNT_ADJUSTMENT_FIRST_LINE.test(lines[0].trim())) {
+    const rest = lines.slice(1).join("\n").trim();
+    return rest ? `${newAutoLine}\n${rest}` : newAutoLine;
+  }
+  return `${newAutoLine}\n${trimmed}`;
+}
+
 export default function AdminCustomerPage({ projectConfig }: AdminCustomerPageProps) {
   // Derive gift config from project config
   const giftConfig = projectConfig
@@ -295,7 +323,11 @@ export default function AdminCustomerPage({ projectConfig }: AdminCustomerPagePr
       const autoAmountNote = hasAdjustedAmount
         ? `đã sửa số tiền từ ${formatCurrencyValue(oldAmount)} thành ${formatCurrencyValue(values.adjustedAmount)}`
         : undefined;
-      const finalVerificationNote = hasAdjustedAmount ? autoAmountNote : values.verificationNote;
+      const userNote = (values.verificationNote ?? "").trim();
+      const finalVerificationNote =
+        hasAdjustedAmount && autoAmountNote
+          ? mergeAmountAutoNoteWithUserText(autoAmountNote, userNote)
+          : userNote;
 
       const result = await updateRedeemReport({
         id: selectedRecord.id,
@@ -996,8 +1028,16 @@ export default function AdminCustomerPage({ projectConfig }: AdminCustomerPagePr
                       const adjustedAmount = allValues.adjustedAmount;
                       if (typeof adjustedAmount === "number" && !Number.isNaN(adjustedAmount)) {
                         const oldAmount = getCurrentInvoiceAmount(selectedRecord);
+                        const newAutoLine = `đã sửa số tiền từ ${formatCurrencyValue(oldAmount)} thành ${formatCurrencyValue(adjustedAmount)}`;
+                        const currentNote =
+                          typeof allValues.verificationNote === "string"
+                            ? allValues.verificationNote
+                            : "";
                         verificationForm.setFieldsValue({
-                          verificationNote: `đã sửa số tiền từ ${formatCurrencyValue(oldAmount)} thành ${formatCurrencyValue(adjustedAmount)}`,
+                          verificationNote: replaceAmountAutoLineOnAmountChange(
+                            newAutoLine,
+                            currentNote
+                          ),
                         });
                       }
                     }

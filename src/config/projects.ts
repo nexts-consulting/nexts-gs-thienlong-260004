@@ -140,6 +140,15 @@ const PROJECT_260005: ProjectConfig = {
       ],
     },
     {
+      id: "260005_scheme_4",
+      name: "Scheme 69K",
+      description: "Hóa đơn đạt giá trị từ 69K",
+      subCode: "scheme_69k",
+      gifts: [
+        { id: "260005_s4_69k", name: "Quà tặng 69K"},
+      ],
+    },
+    {
       id: "260005_scheme_3",
       name: "Scheme 3 - TRANG TRÍ BÚT",
       description: "Mua BÚT GEL-071/PLUS, GEL-072/PLUS, GEL-050/PLUS",

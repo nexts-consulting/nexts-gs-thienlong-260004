@@ -333,7 +333,12 @@ export const Entry = ({ projectConfig }: EntryProps) => {
         case "INIT_FORM_DATA":
           const attendance = message.payload?.currentAttendance;
           if (attendance) {
-            setCurrentAttendance(attendance);
+            // Parent có thể gửi INIT_FORM_DATA nhiều lần để đảm bảo iframe nhận được.
+            // Chỉ cập nhật state khi đổi ca (id khác); tránh re-fetch và flash loading.
+            setCurrentAttendance((prev) => {
+              if (prev?.id === attendance.id) return prev;
+              return attendance;
+            });
             setIsReady(true);
             console.log("✅ Received attendance data from parent app:", attendance);
           } else {

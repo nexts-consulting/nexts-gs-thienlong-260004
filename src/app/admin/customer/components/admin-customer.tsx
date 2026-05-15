@@ -20,6 +20,8 @@ import {
   Form,
   Select,
   InputNumber,
+  Alert,
+  ConfigProvider,
 } from "antd";
 import type { ColumnsType, TablePaginationConfig } from "antd/es/table";
 import dayjs, { Dayjs } from "dayjs";
@@ -38,6 +40,19 @@ const { Title, Text } = Typography;
 
 interface AdminCustomerPageProps {
   projectConfig?: ProjectConfig;
+}
+
+interface AdminAuthUser {
+  username: string;
+}
+
+/** Payload from parent admin app (INIT_ADMIN_DATA) */
+interface AdminAuthStoragePayload {
+  state?: {
+    user?: {
+      username?: string;
+    };
+  };
 }
 
 /** Matches the auto-generated first line when adjusting invoice amount */
@@ -68,6 +83,11 @@ function replaceAmountAutoLineOnAmountChange(newAutoLine: string, currentNote: s
   return `${newAutoLine}\n${trimmed}`;
 }
 
+/** Mount image preview in iframe document — avoids cross-origin parent window access */
+const imagePreviewInFrame = {
+  getContainer: (): HTMLElement => document.body,
+};
+
 export default function AdminCustomerPage({ projectConfig }: AdminCustomerPageProps) {
   // Derive gift config from project config
   const giftConfig = projectConfig
@@ -93,7 +113,10 @@ export default function AdminCustomerPage({ projectConfig }: AdminCustomerPagePr
   const [detailModalVisible, setDetailModalVisible] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [isInIframe, setIsInIframe] = useState(false);
+  const [adminUser, setAdminUser] = useState<AdminAuthUser | null>(null);
   const [saving, setSaving] = useState(false);
+
+  const canEditVerification = !!adminUser?.username;
 
   // Form instance
   const [verificationForm] = Form.useForm();
@@ -261,15 +284,78 @@ export default function AdminCustomerPage({ projectConfig }: AdminCustomerPagePr
     const inIframe = window.self !== window.top;
     setIsInIframe(inIframe);
 
-    if (inIframe) {
+    const parentOrigin = process.env.NEXT_PUBLIC_PARENT_APP_URL || "*";
+    const allowedOrigins = [
+      process.env.NEXT_PUBLIC_PARENT_APP_URL || "",
+      "http://localhost:3000",
+      "http://localhost:3001",
+      "http://localhost:3005",
+      "https://fms-app.nextsconsulting.com",
+      "https://fms-admin.nextsconsulting.com",
+    ].filter(Boolean);
+
+    const isAllowedParentOrigin = (origin: string) => {
+      if (!inIframe || allowedOrigins.length === 0) return true;
+      try {
+        const parentOriginNormalized = new URL(origin).origin;
+        return allowedOrigins.some((allowed) => {
+          try {
+            return new URL(allowed).origin === parentOriginNormalized;
+          } catch {
+            return origin.includes(allowed);
+          }
+        });
+      } catch {
+        return allowedOrigins.some((allowed) => origin.includes(allowed));
+      }
+    };
+
+    const notifyParentReady = () => {
+      window.parent.postMessage({ type: "FORM_READY" }, parentOrigin);
       window.parent.postMessage(
-        {
-          type: "CHILD_READY",
-          payload: { component: "customer-page" },
-        },
-        "*"
+        { type: "CHILD_READY", payload: { component: "customer-page" } },
+        parentOrigin
       );
+      window.parent.postMessage({ type: "REQUEST_AUTH_DATA" }, parentOrigin);
+    };
+
+    const handleMessage = (event: MessageEvent) => {
+      if (!isAllowedParentOrigin(event.origin)) {
+        return;
+      }
+
+      const message = event.data;
+      if (!message || typeof message !== "object" || typeof message.type !== "string") {
+        return;
+      }
+
+      switch (message.type) {
+        case "INIT_ADMIN_DATA": {
+          const authStorage = message.payload?.authStorage as AdminAuthStoragePayload | undefined;
+          const username = authStorage?.state?.user?.username?.trim();
+          if (username) {
+            setAdminUser({ username });
+            console.log("[AdminCustomer] Received admin user:", username);
+          } else {
+            setAdminUser(null);
+            console.warn("[AdminCustomer] INIT_ADMIN_DATA without username", message.payload);
+          }
+          break;
+        }
+        default:
+          break;
+      }
+    };
+
+    window.addEventListener("message", handleMessage);
+
+    if (inIframe) {
+      notifyParentReady();
     }
+
+    return () => {
+      window.removeEventListener("message", handleMessage);
+    };
   }, []);
 
   const handleTableChange = (newPagination: TablePaginationConfig) => {
@@ -313,6 +399,11 @@ export default function AdminCustomerPage({ projectConfig }: AdminCustomerPagePr
   const handleVerificationSubmit = async () => {
     if (!selectedRecord || !selectedRecord.id) return;
 
+    if (!canEditVerification || !adminUser?.username) {
+      message.warning("Chưa có thông tin người dùng từ hệ thống quản trị. Không thể lưu.");
+      return;
+    }
+
     try {
       const values = await verificationForm.validateFields();
       setSaving(true);
@@ -334,6 +425,7 @@ export default function AdminCustomerPage({ projectConfig }: AdminCustomerPagePr
         verificationStatus: values.verificationStatus,
         adjustedAmount: values.adjustedAmount,
         verificationNote: finalVerificationNote,
+        updatedBy: adminUser.username,
       });
 
       if (result.success) {
@@ -470,6 +562,7 @@ export default function AdminCustomerPage({ projectConfig }: AdminCustomerPagePr
           "Ca làm việc": record.workshift_name || "",
           "Mã ca": record.workshift_id || "",
           "Người tạo": record.created_by || "",
+          "Người cập nhật": record.updated_by || "",
         };
       });
 
@@ -500,6 +593,7 @@ export default function AdminCustomerPage({ projectConfig }: AdminCustomerPagePr
           { key: "Ca làm việc", label: "Ca làm việc", type: "text" as const, align: "left" as const, width: 160 },
           { key: "Mã ca", label: "Mã ca", type: "text" as const, align: "center" as const, width: 80 },
           { key: "Người tạo", label: "Người tạo", type: "text" as const, align: "left" as const, width: 200 },
+          { key: "Người cập nhật", label: "Người cập nhật", type: "text" as const, align: "left" as const, width: 200 },
         ];
 
         window.parent.postMessage(
@@ -547,6 +641,7 @@ export default function AdminCustomerPage({ projectConfig }: AdminCustomerPagePr
           { header: "Ca làm việc", key: "Ca làm việc", width: 22 },
           { header: "Mã ca", key: "Mã ca", width: 12 },
           { header: "Người tạo", key: "Người tạo", width: 28 },
+          { header: "Người cập nhật", key: "Người cập nhật", width: 28 },
         ];
 
         worksheet.columns = columns;
@@ -743,7 +838,7 @@ export default function AdminCustomerPage({ projectConfig }: AdminCustomerPagePr
         }
 
         return (
-          <Image.PreviewGroup>
+          <Image.PreviewGroup preview={imagePreviewInFrame}>
             <div className="flex gap-1 flex-wrap">
               {allImages.slice(0, 3).map((url, index) => (
                 <Image
@@ -753,6 +848,7 @@ export default function AdminCustomerPage({ projectConfig }: AdminCustomerPagePr
                   width={40}
                   height={40}
                   style={{ objectFit: "cover", borderRadius: "4px" }}
+                  preview={imagePreviewInFrame}
                 />
               ))}
               {allImages.length > 3 && (
@@ -786,6 +882,13 @@ export default function AdminCustomerPage({ projectConfig }: AdminCustomerPagePr
       ellipsis: true,
     },
     {
+      title: "Người cập nhật",
+      dataIndex: "updated_by",
+      key: "updated_by",
+      width: 150,
+      ellipsis: true,
+    },
+    {
       title: "Thao tác",
       key: "action",
       width: 100,
@@ -803,6 +906,7 @@ export default function AdminCustomerPage({ projectConfig }: AdminCustomerPagePr
   ];
 
   return (
+    <ConfigProvider getPopupContainer={() => document.body}>
     <div className="h-full">
       <Card>
         {/* Title */}
@@ -905,6 +1009,7 @@ export default function AdminCustomerPage({ projectConfig }: AdminCustomerPagePr
       <Modal
         title="Chi tiết khách hàng"
         open={detailModalVisible}
+        getContainer={() => document.body}
         onCancel={() => setDetailModalVisible(false)}
         footer={[
           <Button key="close" onClick={() => setDetailModalVisible(false)}>
@@ -914,6 +1019,7 @@ export default function AdminCustomerPage({ projectConfig }: AdminCustomerPagePr
             key="save"
             type="primary"
             loading={saving}
+            disabled={!canEditVerification}
             onClick={handleVerificationSubmit}
           >
             Lưu kết quả
@@ -1016,10 +1122,24 @@ export default function AdminCustomerPage({ projectConfig }: AdminCustomerPagePr
 
               {/* Verification Form */}
               <Card title="Kiểm tra dữ liệu" size="small">
+                {!canEditVerification && (
+                  <Alert
+                    type="warning"
+                    showIcon
+                    className="mb-3"
+                    message="Chưa xác thực người dùng"
+                    description={
+                      isInIframe
+                        ? "Đang chờ thông tin đăng nhập từ hệ thống quản trị. Vui lòng đợi hoặc tải lại trang."
+                        : "Form cần được mở trong hệ thống quản trị để chỉnh sửa dữ liệu kiểm tra."
+                    }
+                  />
+                )}
                 <Form
                   form={verificationForm}
                   layout="vertical"
                   size="small"
+                  disabled={!canEditVerification}
                   onValuesChange={(changedValues, allValues) => {
                     if (
                       Object.prototype.hasOwnProperty.call(changedValues, "adjustedAmount") &&
@@ -1108,7 +1228,7 @@ export default function AdminCustomerPage({ projectConfig }: AdminCustomerPagePr
               {selectedRecord.sale_data?.invoiceImageUrls &&
                 selectedRecord.sale_data.invoiceImageUrls.length > 0 && (
                   <Card title="Hình ảnh hóa đơn" size="small" className="mb-3">
-                    <Image.PreviewGroup>
+                    <Image.PreviewGroup preview={imagePreviewInFrame}>
                       <Space orientation="vertical" size="middle" className="w-full">
                         {selectedRecord.sale_data.invoiceImageUrls.map((url, index) => (
                           <Image
@@ -1117,6 +1237,7 @@ export default function AdminCustomerPage({ projectConfig }: AdminCustomerPagePr
                             alt={`Hóa đơn ${index + 1}`}
                             width="100%"
                             style={{ objectFit: "contain", borderRadius: "4px" }}
+                            preview={imagePreviewInFrame}
                           />
                         ))}
                       </Space>
@@ -1132,6 +1253,7 @@ export default function AdminCustomerPage({ projectConfig }: AdminCustomerPagePr
                     alt="Khách nhận quà"
                     width="100%"
                     style={{ borderRadius: "4px" }}
+                    preview={imagePreviewInFrame}
                   />
                 </Card>
               )}
@@ -1140,5 +1262,6 @@ export default function AdminCustomerPage({ projectConfig }: AdminCustomerPagePr
         )}
       </Modal>
     </div>
+   </ConfigProvider>
   );
 }

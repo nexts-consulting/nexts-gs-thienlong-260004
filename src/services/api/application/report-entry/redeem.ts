@@ -8,6 +8,7 @@ export interface RedeemReportEntry {
   id?: number;
   created_at?: string;
   updated_at?: string;
+  updated_by?: string | null;
   created_by: string;
   phone_number: string;
   customer_name: string;
@@ -295,6 +296,7 @@ export interface UpdateReportParams {
   verificationStatus?: "correct" | "incorrect";
   gifts?: Record<string, number>;
   totalInvoice?: number;
+  updatedBy?: string;
 }
 
 export const updateRedeemReport = async (
@@ -308,6 +310,7 @@ export const updateRedeemReport = async (
       verificationStatus,
       gifts,
       totalInvoice,
+      updatedBy,
     } = params;
 
     // Get current record to merge other_data and support gift_data/sale_data update
@@ -337,6 +340,10 @@ export const updateRedeemReport = async (
       other_data: updatedOtherData,
       updated_at: now,
     };
+
+    if (updatedBy) {
+      updatePayload.updated_by = updatedBy;
+    }
 
     if (gifts) {
       const currentGiftData = (currentRecord?.gift_data || {}) as {
